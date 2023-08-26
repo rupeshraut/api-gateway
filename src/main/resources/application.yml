@@ -1,0 +1,57 @@
+spring:
+    application:
+        name: api-gateway
+    config:
+        import: 'optional:configserver:'
+    cloud:
+      gateway:
+          discovery:
+              locator:
+                  enabled: true
+                  lower-case-service-id: true
+          routes:
+              - id: user-service
+                uri: lb://user-service
+                predicates:
+                  - Path=/user/**
+                filters:
+                  - RewritePath=/user/(?<path>.*), /$\{path}
+                  - name: CircuitBreaker
+                    args:
+                      name: userService
+                      fallbackUri: forward:/list-fallback
+                  - name: RequestRateLimiter
+                    args:
+                      name: userService
+
+eureka:
+    instance:
+        prefer-ip-address: true
+    client:
+        service-url:
+          defaultZone:
+              http://localhost:8081/eureka/
+        register-with-eureka: true
+        fetch-registry: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      userService:
+        sliding-window-type: count_based
+        slidingWindowSize: 3                     #unit request
+        minimum-number-of-calls: 3
+        permittedNumberOfCallsInHalfOpenState: 2  #unit request
+        failureRateThreshold: 50                  #percent
+        waitDurationInOpenState: 10000            #10 seconds
+        registerHealthIndicator: true
+  timelimiter:
+    instances:
+      userService:
+        timeoutDuration: 2s
+  ratelimiter:
+    instances:
+      userService:
+        limit-for-period: 2
+        limit-refresh-period: 2s
+        timeout-duration: 0s
