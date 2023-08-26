@@ -20,10 +20,17 @@ spring:
                     args:
                       name: userService
                       fallbackUri: forward:/list-fallback
-                  - name: RequestRateLimiter
-                    args:
-                      name: userService
-
+#                  - name: RequestRateLimiter
+#                    args:
+#                      name: userService
+              - id: graphql-api-gateway
+                uri: lb://graphql-api-gateway
+                predicates:
+                  - Path=/**
+                  - Path=/graphql
+                filters:
+                  - RewritePath=/graphql/(?<path>.*), /$\{path}
+                  - RewritePath=/graphiql/(?<path>.*), /$\{path}
 eureka:
     instance:
         prefer-ip-address: true
